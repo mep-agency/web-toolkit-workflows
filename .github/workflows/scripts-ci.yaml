@@ -1,16 +1,8 @@
-name: MWT - PHPUnit CI
+name: MWT - Scripts CI
 
 on:
   workflow_call:
     inputs:
-      php_version:
-        type: string
-        required: false
-        default: 8.0
-      php_extensions:
-        type: string
-        required: false
-        default: mbstring, xml, ctype, iconv, intl, pdo_sqlite
       yarn_always_auth:
         description: Set always-auth in npmrc
         type: string
@@ -25,30 +17,15 @@ on:
         type: string
         required: false
     secrets:
-      composer_auth_token:
-        description: Access token to install composer packages
-        required: true
       yarn_auth_token:
         description: Access token to install yarn packages
         required: false
 
 jobs:
-  phpunit-ci:
+  scripts-ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
-      - name: setup-php
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ inputs.php_version }}
-          extensions: ${{ inputs.php_extensions }}
-        env:
-          COMPOSER_TOKEN: ${{ secrets.composer_auth_token }}
-
-      - uses: ramsey/composer-install@v1
-        with:
-          composer-options: --prefer-dist
 
       - uses: actions/setup-node@v2
         with:
@@ -61,13 +38,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.yarn_auth_token }}
 
-      - name: Build assets
-        run: yarn build
+      - uses: actions/cache@v2
+        id: eslint-cache # use this to check for `cache-hit` (`steps.eslint-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: .eslintcache
+          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-eslint-
 
-      - name: Initialize test DB
-        run: php bin/console doctrine:schema:create && php bin/console doctrine:fixtures:load -n
-        env:
-          APP_ENV: test
-
-      - name: Run PHPUnit tests
-        run: php bin/phpunit
+      - name: Run ESLint
+        run: yarn run eslint
