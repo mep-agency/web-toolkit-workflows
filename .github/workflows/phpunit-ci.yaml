@@ -1,4 +1,4 @@
-name: MWT - PHP CI
+name: MWT - PHPUnit CI
 
 on:
   workflow_call:
@@ -10,13 +10,17 @@ on:
       php_extensions:
         type: string
         required: false
+        default: mbstring, xml, ctype, iconv, intl, pdo_sqlite
     secrets:
       composer_auth_token:
         description: Access token to install composer packages
         required: true
+      yarn_auth_token:
+        description: Access token to install yarn packages
+        required: true
 
 jobs:
-  php-ci:
+  phpunit-ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -33,11 +37,21 @@ jobs:
         with:
           composer-options: --prefer-dist
 
-      - name: Run code-style checks (Rector)
-        run: composer rector
+      - uses: actions/setup-node@v2
+        with:
+          cache: yarn
 
-      - name: Run code-style checks (ECS)
-        run: composer ecs
+      - run: yarn install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.yarn_auth_token }}
 
-      - name: Run PHPStan checks
-        run: composer phpstan
+      - name: Build assets
+        run: yarn build
+
+      - name: Initialize test DB
+        run: php bin/console doctrine:schema:create && php bin/console doctrine:fixtures:load -n
+        env:
+          APP_ENV: test
+
+      - name: Run PHPUnit tests
+        run: php bin/phpunit
