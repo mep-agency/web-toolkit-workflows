@@ -1,0 +1,43 @@
+name: MWT - PHP CI
+
+on:
+  workflow_call:
+    inputs:
+      php_version:
+        type: string
+        required: false
+        default: 8.0
+      php_extensions:
+        type: string
+        required: false
+    secrets:
+      gh_access_token:
+        description: Access token to install composer packages
+        required: true
+
+jobs:
+  php-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: setup-php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php_version }}
+          extensions: ${{ inputs.php_extensions }}
+        env:
+          COMPOSER_TOKEN: ${{ secrets.gh_access_token }}
+
+      - uses: ramsey/composer-install@v1
+        with:
+          composer-options: --prefer-dist
+
+      - name: Run code-style checks (Rector)
+        run: composer rector
+
+      - name: Run code-style checks (ECS)
+        run: composer ecs
+
+      - name: Run PHPStan checks
+        run: composer phpstan
