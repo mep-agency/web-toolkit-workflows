@@ -26,10 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           cache: yarn
           always-auth: ${{ inputs.yarn_always_auth }}
@@ -42,7 +42,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.yarn_auth_token }}
 
       - name: Yarn cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: eslint-cache # use this to check for `cache-hit` (`steps.eslint-cache.outputs.cache-hit != 'true'`)
         with:
           path: .eslintcache
